@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ thống quản lý giải đấu cầu lông</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        }
+
+        .section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #3498db;
+            font-size: 1.5rem;
+        }
+
+        .schedule-section {
+            grid-column: span 2;
+        }
+
+        .match {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            border-left: 4px solid #3498db;
+        }
+
+        .match-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .match-number {
+            background: #3498db;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        .referees {
+            background: #e74c3c;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+        }
+
+        .match-teams {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .team {
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            min-width: 150px;
+            text-align: center;
+        }
+
+        .team.group1 {
+            background: linear-gradient(135deg, #fd79a8, #e84393);
+        }
+
+        .team.group2 {
+            background: linear-gradient(135deg, #fdcb6e, #e17055);
+        }
+
+        .vs {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .score-input {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .score-input input {
+            width: 60px;
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .score-input input:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+
+        .update-btn {
+            background: linear-gradient(135deg, #00b894, #00a085);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+
+        .update-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+
+        .table th {
+            background: linear-gradient(135deg, #2d3436, #636e72);
+            color: white;
+            padding: 15px 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .table td {
+            padding: 12px 10px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+
+        .table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .table tr:hover {
+            background: #e3f2fd;
+        }
+
+        .rank-1 {
+            background: linear-gradient(135deg, #ffd700, #ffb300) !important;
+            color: white;
+            font-weight: bold;
+        }
+
+        .rank-2 {
+            background: linear-gradient(135deg, #c0c0c0, #a0a0a0) !important;
+            color: white;
+            font-weight: bold;
+        }
+
+        .rank-3 {
+            background: linear-gradient(135deg, #cd7f32, #b8860b) !important;
+            color: white;
+            font-weight: bold;
+        }
+
+        .status {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .status.completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+                padding: 20px;
+            }
+            
+            .schedule-section {
+                grid-column: span 1;
+            }
+            
+            .match-teams {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .team {
+                min-width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏸 Giải đấu cầu lông</h1>
+            <p>Hệ thống quản lý thi đấu và bảng xếp hạng</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Bảng xếp hạng Group 1 -->
+            <div class="section">
+                <h2>🏆 Bảng xếp hạng Group 1</h2>
+                <table class="table" id="table1">
+                    <thead>
+                        <tr>
+                            <th>Hạng</th>
+                            <th>Đội</th>
+                            <th>Trận</th>
+                            <th>Thắng</th>
+                            <th>Hòa</th>
+                            <th>Thua</th>
+                            <th>Điểm</th>
+                            <th>HS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="group1-table">
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Bảng xếp hạng Group 2 -->
+            <div class="section">
+                <h2>🏆 Bảng xếp hạng Group 2</h2>
+                <table class="table" id="table2">
+                    <thead>
+                        <tr>
+                            <th>Hạng</th>
+                            <th>Đội</th>
+                            <th>Trận</th>
+                            <th>Thắng</th>
+                            <th>Hòa</th>
+                            <th>Thua</th>
+                            <th>Điểm</th>
+                            <th>HS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="group2-table">
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Lịch thi đấu -->
+            <div class="section schedule-section">
+                <h2>📅 Lịch thi đấu</h2>
+                <div id="schedule"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dữ liệu đội
+        const teams = {
+            group1: [
+                { name: 'Tân Toàn', played: 0, won: 0, drawn: 0, lost: 0, points: 0, goalDiff: 0 },
+                { name: 'Nhật Hương', played: 0, won: 0, drawn: 0, lost: 0, points: 0, goalDiff: 0 },
+                { name: 'Anh Long', played: 0, won: 0, drawn: 0, lost: 0, points: 0, goalDiff: 0 },
+                { name: 'Đức Nguyễn', played: 0, won: 0, drawn: 0, lost: 0, points: 0, goalDiff: 0 }
+            ],
+            group2: [
+                { name: 'Kim Sơn', played: 0, won: 0, drawn: 0, lost: 0, points: 0, goalDiff: 0 },
+                { name: 'Hòa Quý', played: 0, won: 0, drawn: 0, lost: 0, points: 0, goalDiff: 0 },
+                { name: 'Nhật Trâm', played: 0, won: 0, drawn: 0, lost: 0, points: 0, goalDiff: 0 }
+            ]
+        };
+
+        function splitNames(names) {
+            const allNames = [...teams.group1, ...teams.group2];
+            const referees = [];
+            
+            allNames.forEach(team => {
+                const nameParts = team.name.split(' ');
+                if (nameParts.length >= 2) {
+                    referees.push(nameParts[0]);
+                    referees.push(nameParts[1]);
+                } else {
+                    referees.push(team.name);
+                }
+            });
+            
+            return referees;
+        }
+
+        const referees = splitNames();
+
+        function generateSchedule() {
+            const matches = [];
+            let matchId = 1;
+            
+            const group1Matches = [];
+            const group2Matches = [];
+            
+            for (let i = 0; i < teams.group1.length; i++) {
+                for (let j = i + 1; j < teams.group1.length; j++) {
+                    const randomReferees = getRandomReferees();
+                    group1Matches.push({
+                        team1: teams.group1[i].name,
+                        team2: teams.group1[j].name,
+                        group1: true,
+                        group2: false,
+                        referees: randomReferees,
+                        score1: '',
+                        score2: '',
+                        completed: false
+                    });
+                }
+            }
+            
+            for (let i = 0; i < teams.group2.length; i++) {
+                for (let j = i + 1; j < teams.group2.length; j++) {
+                    const randomReferees = getRandomReferees();
+                    group2Matches.push({
+                        team1: teams.group2[i].name,
+                        team2: teams.group2[j].name,
+                        group1: false,
+                        group2: true,
+                        referees: randomReferees,
+                        score1: '',
+                        score2: '',
+                        completed: false
+                    });
+                }
+            }
+            
+            const maxMatches = Math.max(group1Matches.length, group2Matches.length);
+            
+            for (let i = 0; i < maxMatches; i++) {
+                if (i < group1Matches.length) {
+                    matches.push({
+                        id: matchId++,
+                        ...group1Matches[i]
+                    });
+                }
+                if (i < group2Matches.length) {
+                    matches.push({
+                        id: matchId++,
+                        ...group2Matches[i]
+                    });
+                }
+            }
+            
+            return matches;
+        }
+
+        function getRandomReferees() {
+            const shuffled = [...referees].sort(() => 0.5 - Math.random());
+            return [shuffled[0], shuffled[1]];
+        }
+
+
+
+        let matches = generateSchedule();
+
+        function displaySchedule() {
+            const scheduleDiv = document.getElementById('schedule');
+            scheduleDiv.innerHTML = '';
+            
+            matches.forEach(match => {
+                const matchDiv = document.createElement('div');
+                matchDiv.className = 'match';
+                
+                matchDiv.innerHTML = `
+                    <div class="match-header">
+                        <span class="match-number">Trận ${match.id}</span>
+                        <span class="referees">Trọng tài: ${match.referees.join(', ')}</span>
+                        <span class="status ${match.completed ? 'completed' : 'pending'}">
+                            ${match.completed ? 'Đã thi đấu' : 'Chưa thi đấu'}
+                        </span>
+                    </div>
+                    <div class="match-teams">
+                        <div class="team ${match.group1 ? 'group1' : 'group2'}">${match.team1}</div>
+                        <span class="vs">VS</span>
+                        <div class="team ${match.group1 ? 'group1' : 'group2'}">${match.team2}</div>
+                    </div>
+                    <div class="score-input">
+                        <input type="number" min="0" max="50" placeholder="0" id="score1-${match.id}" value="${match.score1}" ${match.completed ? 'disabled' : ''}>
+                        <span>-</span>
+                        <input type="number" min="0" max="50" placeholder="0" id="score2-${match.id}" value="${match.score2}" ${match.completed ? 'disabled' : ''}>
+                        <button class="update-btn" onclick="updateScore(${match.id})" ${match.completed ? 'disabled' : ''}>
+                            ${match.completed ? 'Đã cập nhật' : 'Cập nhật'}
+                        </button>
+                    </div>
+                `;
+                
+                scheduleDiv.appendChild(matchDiv);
+            });
+        }
+
+        function updateScore(matchId) {
+            const match = matches.find(m => m.id === matchId);
+            const score1 = parseInt(document.getElementById(`score1-${matchId}`).value) || 0;
+            const score2 = parseInt(document.getElementById(`score2-${matchId}`).value) || 0;
+            
+            if (score1 === 0 && score2 === 0) {
+                alert('Vui lòng nhập tỷ số hợp lệ!');
+                return;
+            }
+            
+            match.score1 = score1;
+            match.score2 = score2;
+            match.completed = true;
+            
+            updateTeamStats(match);
+            
+            displaySchedule();
+            updateTables();
+        }
+
+        function updateTeamStats(match) {
+            const group = match.group1 ? teams.group1 : teams.group2;
+            const team1 = group.find(t => t.name === match.team1);
+            const team2 = group.find(t => t.name === match.team2);
+            
+            team1.played++;
+            team2.played++;
+            
+            const goalDiff1 = match.score1 - match.score2;
+            const goalDiff2 = match.score2 - match.score1;
+            
+            team1.goalDiff += goalDiff1;
+            team2.goalDiff += goalDiff2;
+            
+            if (match.score1 > match.score2) {
+                team1.won++;
+                team1.points += 3;
+                team2.lost++;
+            } else if (match.score1 < match.score2) {
+                team2.won++;
+                team2.points += 3;
+                team1.lost++;
+            } else {
+                team1.drawn++;
+                team2.drawn++;
+                team1.points += 1;
+                team2.points += 1;
+            }
+        }
+
+        function updateTables() {
+            updateTable('group1', teams.group1);
+            updateTable('group2', teams.group2);
+        }
+
+        function updateTable(groupName, teamData) {
+            const sortedTeams = [...teamData].sort((a, b) => {
+                if (b.points !== a.points) return b.points - a.points;
+                return b.goalDiff - a.goalDiff;
+            });
+            
+            const tbody = document.getElementById(`${groupName}-table`);
+            tbody.innerHTML = '';
+            
+            sortedTeams.forEach((team, index) => {
+                const row = document.createElement('tr');
+                
+                if (index === 0) row.classList.add('rank-1');
+                else if (index === 1) row.classList.add('rank-2');
+                else if (index === 2) row.classList.add('rank-3');
+                
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${team.name}</td>
+                    <td>${team.played}</td>
+                    <td>${team.won}</td>
+                    <td>${team.drawn}</td>
+                    <td>${team.lost}</td>
+                    <td>${team.points}</td>
+                    <td>${team.goalDiff > 0 ? '+' : ''}${team.goalDiff}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        // Khởi tạo
+        function initialize() {
+            displaySchedule();
+            updateTables();
+        }
+
+        // Chạy khi trang load
+        window.onload = initialize;
+    </script>
+</body>
+</html>
