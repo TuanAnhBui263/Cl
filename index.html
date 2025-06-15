@@ -237,6 +237,27 @@
             color: #856404;
         }
 
+        .controls {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .controls button {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 0 10px;
+            transition: transform 0.2s;
+        }
+
+        .controls button:hover {
+            transform: scale(1.05);
+        }
+
         @media (max-width: 768px) {
             .main-content {
                 grid-template-columns: 1fr;
@@ -312,6 +333,11 @@
             <!-- Lịch thi đấu -->
             <div class="section schedule-section">
                 <h2>📅 Lịch thi đấu</h2>
+                <div class="controls"></div>
+                <div class="controls">
+                    <button onclick="regenerateSchedule()">🔄 Tạo lại lịch thi đấu</button>
+                    <button onclick="resetTournament()">🔄 Reset toàn bộ</button>
+                </div>
                 <div id="schedule"></div>
             </div>
         </div>
@@ -324,7 +350,7 @@
                 { name: 'Tân Toàn', played: 0, won: 0, drawn: 0, lost: 0, points: 0, goalDiff: 0 },
                 { name: 'Nhật Hương', played: 0, won: 0, drawn: 0, lost: 0, points: 0, goalDiff: 0 },
                 { name: 'Anh Long', played: 0, won: 0, drawn: 0, lost: 0, points: 0, goalDiff: 0 },
-                { name: 'Đức Nguyễn', played: 0, won: 0, drawn: 0, lost: 0, points: 0, goalDiff: 0 }
+                { name: 'Đức Nguyên', played: 0, won: 0, drawn: 0, lost: 0, points: 0, goalDiff: 0 }
             ],
             group2: [
                 { name: 'Kim Sơn', played: 0, won: 0, drawn: 0, lost: 0, points: 0, goalDiff: 0 },
@@ -333,6 +359,7 @@
             ]
         };
 
+        // Tách tên thành 2 người làm trọng tài
         function splitNames(names) {
             const allNames = [...teams.group1, ...teams.group2];
             const referees = [];
@@ -352,74 +379,182 @@
 
         const referees = splitNames();
 
-        function generateSchedule() {
-            const matches = [];
-            let matchId = 1;
-            
+        // Hàm xáo trộn mảng
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        // Thuật toán tạo lịch đan xen 2 group, tránh sát nhau
+        function generateOptimalSchedule() {
             const group1Matches = [];
             const group2Matches = [];
-            
+
+            // Tạo danh sách trận cho từng group
             for (let i = 0; i < teams.group1.length; i++) {
                 for (let j = i + 1; j < teams.group1.length; j++) {
-                    const randomReferees = getRandomReferees();
                     group1Matches.push({
                         team1: teams.group1[i].name,
                         team2: teams.group1[j].name,
-                        group1: true,
-                        group2: false,
-                        referees: randomReferees,
-                        score1: '',
-                        score2: '',
-                        completed: false
+                        group: 1
                     });
                 }
             }
-            
             for (let i = 0; i < teams.group2.length; i++) {
                 for (let j = i + 1; j < teams.group2.length; j++) {
-                    const randomReferees = getRandomReferees();
                     group2Matches.push({
                         team1: teams.group2[i].name,
                         team2: teams.group2[j].name,
-                        group1: false,
-                        group2: true,
-                        referees: randomReferees,
-                        score1: '',
-                        score2: '',
-                        completed: false
+                        group: 2
                     });
                 }
             }
-            
-            const maxMatches = Math.max(group1Matches.length, group2Matches.length);
-            
-            for (let i = 0; i < maxMatches; i++) {
-                if (i < group1Matches.length) {
-                    matches.push({
-                        id: matchId++,
-                        ...group1Matches[i]
-                    });
-                }
-                if (i < group2Matches.length) {
-                    matches.push({
-                        id: matchId++,
-                        ...group2Matches[i]
-                    });
+
+            // Xáo trộn để random lịch
+            shuffle(group1Matches);
+            shuffle(group2Matches);
+
+            // Đan xen trận đấu giữa 2 group
+            let schedule = [];
+            let g1 = 0, g2 = 0;
+            while (g1 < group1Matches.length || g2 < group2Matches.length) {
+                if ((schedule.length % 2 === 0 && g1 < group1Matches.length) || g2 >= group2Matches.length) {
+                    schedule.push(group1Matches[g1++]);
+                } else if (g2 < group2Matches.length) {
+                    schedule.push(group2Matches[g2++]);
                 }
             }
+
+            // Đảm bảo không có đội nào đấu 2 trận liên tiếp hoặc cách 1 trận
+            let teamLastMatchIndex = new Map();
+            [...teams.group1, ...teams.group2].forEach(team => teamLastMatchIndex.set(team.name, -10));
+
+            // Nếu phát hiện trận đấu sát nhau, hoán đổi với trận xa nhất có thể
+            for (let i = 0; i < schedule.length; i++) {
+                const { team1, team2 } = schedule[i];
+                const last1 = teamLastMatchIndex.get(team1);
+                const last2 = teamLastMatchIndex.get(team2);
+                if (i - last1 < 2 || i - last2 < 2) {
+                    // Tìm trận xa hơn để hoán đổi
+                    let swapIdx = -1;
+                    for (let j = i + 1; j < schedule.length; j++) {
+                        const t1 = schedule[j].team1, t2 = schedule[j].team2;
+                        if ((j - teamLastMatchIndex.get(t1) >= 2) && (j - teamLastMatchIndex.get(t2) >= 2)
+                            && (i - teamLastMatchIndex.get(t1) >= 2) && (i - teamLastMatchIndex.get(t2) >= 2)) {
+                            swapIdx = j;
+                            break;
+                        }
+                    }
+                    if (swapIdx !== -1) {
+                        // Hoán đổi trận i và swapIdx
+                        [schedule[i], schedule[swapIdx]] = [schedule[swapIdx], schedule[i]];
+                    }
+                }
+                // Cập nhật lại vị trí trận gần nhất cho mỗi đội
+                teamLastMatchIndex.set(schedule[i].team1, i);
+                teamLastMatchIndex.set(schedule[i].team2, i);
+            }
+
+            // Gán thêm các trường dữ liệu cần thiết cho mỗi trận
+            let matchId = 1;
+            let lastMatchTeams = new Set();
+            return schedule.map(match => {
+                const availableReferees = getAvailableReferees([match.team1, match.team2], lastMatchTeams);
+                lastMatchTeams = new Set([match.team1, match.team2]);
+                return {
+                    id: matchId++,
+                    team1: match.team1,
+                    team2: match.team2,
+                    group1: match.group === 1,
+                    group2: match.group === 2,
+                    referees: availableReferees,
+                    score1: '',
+                    score2: '',
+                    completed: false
+                };
+            });
+        }
+
+        // Tìm trận đấu tốt nhất từ danh sách
+        function findBestMatch(matchList, currentIndex, teamLastMatchIndex, lastMatchTeams) {
+            let bestMatch = null;
+            let bestScore = -1;
+
+            for (const match of matchList) {
+                const score = calculateMatchScore(match, currentIndex, teamLastMatchIndex, lastMatchTeams);
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMatch = match;
+                }
+            }
+
+            // Chỉ trả về nếu điểm số đủ tốt (tránh đội đấu quá sát)
+            return bestScore >= 0 ? bestMatch : null;
+        }
+
+        // Tính điểm cho một trận đấu (điểm càng cao càng tốt)
+        function calculateMatchScore(match, currentIndex, teamLastMatchIndex, lastMatchTeams) {
+            let score = 0;
+
+            // Kiểm tra khoảng cách từ trận cuối của mỗi đội
+            const team1LastIndex = teamLastMatchIndex.get(match.team1) || -10;
+            const team2LastIndex = teamLastMatchIndex.get(match.team2) || -10;
             
-            return matches;
+            const team1Gap = currentIndex - team1LastIndex;
+            const team2Gap = currentIndex - team2LastIndex;
+            const minGap = Math.min(team1Gap, team2Gap);
+
+            // Yêu cầu tối thiểu 2 trận nghỉ giữa các lần đấu của cùng một đội
+            if (minGap < 2) {
+                return -100; // Điểm rất thấp, tránh chọn
+            }
+
+            // Ưu tiên khoảng cách lớn hơn
+            score += minGap * 5;
+
+            // Tránh đội vừa thi đấu làm trọng tài ngay lập tức
+            if (lastMatchTeams.has(match.team1) || lastMatchTeams.has(match.team2)) {
+                score -= 50;
+            }
+
+            // Thưởng điểm cho khoảng cách đều
+            if (Math.abs(team1Gap - team2Gap) <= 1) {
+                score += 10;
+            }
+
+            return score;
         }
 
-        function getRandomReferees() {
-            const shuffled = [...referees].sort(() => 0.5 - Math.random());
-            return [shuffled[0], shuffled[1]];
+        // Chọn trọng tài phù hợp
+        function getAvailableReferees(playingTeams, lastMatchTeams) {
+            const availableReferees = referees.filter(ref => {
+                // Không phải người đang thi đấu
+                const isPlaying = playingTeams.some(team => team.includes(ref) || ref.includes(team));
+                
+                // Không phải người vừa thi đấu trận trước
+                const wasJustPlaying = Array.from(lastMatchTeams).some(team => team.includes(ref) || ref.includes(team));
+                
+                return !isPlaying && !wasJustPlaying;
+            });
+            
+            // Nếu không đủ trọng tài, chỉ loại người đang thi đấu
+            if (availableReferees.length < 2) {
+                const fallbackReferees = referees.filter(ref => {
+                    return !playingTeams.some(team => team.includes(ref) || ref.includes(team));
+                });
+                const shuffled = fallbackReferees.sort(() => 0.5 - Math.random());
+                return shuffled.slice(0, 2);
+            }
+            
+            const shuffled = availableReferees.sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, 2);
         }
 
+        let matches = generateOptimalSchedule();
 
-
-        let matches = generateSchedule();
-
+        // Hiển thị lịch đấu
         function displaySchedule() {
             const scheduleDiv = document.getElementById('schedule');
             scheduleDiv.innerHTML = '';
@@ -455,6 +590,35 @@
             });
         }
 
+        // Tạo lại lịch thi đấu
+        function regenerateSchedule() {
+            if (matches.some(m => m.completed)) {
+                if (!confirm('Đã có trận đấu được cập nhật kết quả. Tạo lại lịch sẽ xóa tất cả kết quả. Bạn có chắc chắn?')) {
+                    return;
+                }
+            }
+            
+            resetTournament();
+            matches = generateOptimalSchedule();
+            displaySchedule();
+        }
+
+        // Reset toàn bộ giải đấu
+        function resetTournament() {
+            // Reset dữ liệu đội
+            [...teams.group1, ...teams.group2].forEach(team => {
+                team.played = 0;
+                team.won = 0;
+                team.drawn = 0;
+                team.lost = 0;
+                team.points = 0;
+                team.goalDiff = 0;
+            });
+            
+            updateTables();
+        }
+
+        // Cập nhật tỷ số
         function updateScore(matchId) {
             const match = matches.find(m => m.id === matchId);
             const score1 = parseInt(document.getElementById(`score1-${matchId}`).value) || 0;
@@ -469,12 +633,15 @@
             match.score2 = score2;
             match.completed = true;
             
+            // Cập nhật thống kê đội
             updateTeamStats(match);
             
+            // Làm mới hiển thị
             displaySchedule();
             updateTables();
         }
 
+        // Cập nhật thống kê đội
         function updateTeamStats(match) {
             const group = match.group1 ? teams.group1 : teams.group2;
             const team1 = group.find(t => t.name === match.team1);
@@ -505,6 +672,7 @@
             }
         }
 
+        // Cập nhật bảng xếp hạng
         function updateTables() {
             updateTable('group1', teams.group1);
             updateTable('group2', teams.group2);
@@ -547,7 +715,6 @@
             updateTables();
         }
 
-        // Chạy khi trang load
         window.onload = initialize;
     </script>
 </body>
